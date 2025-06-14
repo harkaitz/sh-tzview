@@ -2,6 +2,8 @@
 
 Display in local time the moment in time in other timezones.
 
+![tzview](tty.gif)
+
 ## Requirements
 
 A date(1) command that supports "--date" argument. Busybox, binutils.
