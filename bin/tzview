@@ -1,0 +1,57 @@
+#!/bin/sh -e
+##:
+#h: Usage: tzview [-f FMT][-c LIST]
+#h:
+#h: Display in local time the moment in time in other timezones.
+#h:
+#h: Example "tzview.lst" file:
+#h:
+#h:   America/New_York <tab> 08:00 <tab> New York Office Opening
+#h:   Europe/Berlin    <tab> 09:00 <tab> Berlin Office Opening
+#h:
+#h: The time format can be specified with the -f option, which is
+#h: passed to the date command. The default format is "%H:%M".
+#h:
+#h: Default list: $TZVIEW_FILE, ~/.tzview.lst, /etc/tzview.lst
+##:
+tzview() {
+    local OPTIND=1 optopt tz hour name epoch date opt_f='%H:%M'
+    
+    # Parse command line arguments.
+    while getopts "f:c:" optopt; do
+        case $optopt in
+            f)  opt_f="${OPTARG}";;
+            c)  TZVIEW_FILE="${OPTARG}";;
+            \?) return 1;;
+        esac
+    done
+    shift $(( $OPTIND - 1 ))
+
+    # The program.
+    if test -n "${TZVIEW_FILE}"; then
+        cat "${TZVIEW_FILE}"
+    elif test -f ~/.tzview.lst; then
+        cat ~/.tzview.lst
+    elif test -f /etc/tzview.lst; then
+        cat /etc/tzview.lst
+    else
+        echo "warning: tzview not configured." >&2
+        return 1
+    fi | while IFS='	' read -r tz hour name; do
+        epoch="$(TZ="${tz}" date --date "${hour}" '+%s')"
+        printf '%-20s : %s\n' \
+               "${name}"      \
+               "$(date --date "@${epoch}" ${opt_f:+ "+${opt_f}" })"
+    done
+
+    #
+    return 0
+}
+# --------------------------------------------------------------------
+if test @"${SCRNAME:-$(basename "$0")}" = @"tzview"; then
+    export MSYS_NO_PATHCONV=1
+    case "${1}" in
+        -h|--help) sed -n 's/^ *#h: \{0,1\}//p' "$0";;
+        *)         tzview "$@"; exit 0;;
+    esac
+fi
